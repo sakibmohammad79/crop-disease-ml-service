@@ -1,6 +1,4 @@
-# ml-service/app/simple_model.py
 # Beginner-friendly ML model for crop disease detection
-
 import numpy as np
 from PIL import Image
 import io
