@@ -125,7 +125,7 @@ class SimpleCropClassifier:
             color_variance = features['color_variance']
             brightness = features['brightness']
             
-            # Rule-based logic (এটা actual ML না, কিন্তু beginner friendly)
+            # Rule-based logic 
             if green_ratio > 0.4 and color_variance < 2000 and brightness > 100:
                 # Healthy-looking image
                 predicted_disease = 'healthy'
