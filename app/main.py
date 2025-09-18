@@ -1,16 +1,17 @@
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import time
 from datetime import datetime
 import uvicorn
 
-# Import our simple model
-from app.simple_model import predict_with_simple_model
+# Import real model
+from app.simple_model import initialize_real_model, predict_with_real_model
 
 app = FastAPI(
-    title="Crop Disease Detection ML Service",
-    description="Simple AI service for crop disease detection",
-    version="1.0.0",
+    title="Real Crop Disease Detection ML Service",
+    description="CNN-based AI service for crop disease detection",
+    version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -24,13 +25,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Global variable to track model status
+model_loaded = False
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize real ML model on startup"""
+    global model_loaded
+    print("🧠 Initializing Real CNN Model...")
+    model_loaded = initialize_real_model()
+    if model_loaded:
+        print("✅ Real CNN model loaded successfully!")
+    else:
+        print("⚠️  Model loading failed, using fallback predictions")
+
 @app.get("/")
 async def root():
     return {
-        "service": "Simple Crop Disease Detection ML Service",
+        "service": "Real Crop Disease Detection ML Service",
         "status": "running",
-        "version": "1.0.0",
-        "model_type": "Rule-based Classifier",
+        "version": "2.0.0",
+        "model_type": "Convolutional Neural Network",
+        "model_loaded": model_loaded,
         "timestamp": datetime.now().isoformat(),
         "endpoints": {
             "health": "/health",
@@ -45,9 +61,9 @@ async def health_check():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "ml_service": "ready",
-        "models_loaded": True,
-        "model_type": "Simple Rule-Based",
-        "memory_usage": "low"
+        "models_loaded": model_loaded,
+        "model_type": "CNN" if model_loaded else "Fallback",
+        "memory_usage": "moderate"
     }
 
 @app.post("/predict")
@@ -67,28 +83,28 @@ async def predict_disease_endpoint(image: UploadFile = File(...)):
         if len(contents) > 10 * 1024 * 1024:  # 10MB
             raise HTTPException(status_code=400, detail="File too large")
         
-        print(f"Processing image: {image.filename} ({len(contents)} bytes)")
+        print(f"🔍 Processing image: {image.filename} ({len(contents)} bytes)")
         
-        # Get prediction using simple model
-        result = predict_with_simple_model(contents)
+        # Get prediction using real CNN model
+        result = predict_with_real_model(contents)
         
         # Calculate processing time
         processing_time = round(time.time() - start_time, 2)
         
         return {
             "success": True,
-            "message": "Image analyzed successfully",
+            "message": "Image analyzed with CNN model",
             "image_info": {
                 "filename": image.filename,
-                "size_bytes": len(contents),
-                "analysis": result.get('analysis', {})
+                "size_bytes": len(contents)
             },
             "prediction": result['prediction'],
             "treatment": result['treatment'],
             "processing_time_seconds": processing_time,
             "model_info": {
-                "type": result.get('model_type', 'Simple Classifier'),
-                "version": result['prediction']['model_version']
+                "type": result.get('model_type', 'CNN'),
+                "version": result['prediction']['model_version'],
+                "details": result.get('model_info', {})
             },
             "timestamp": datetime.now().isoformat()
         }
@@ -98,40 +114,7 @@ async def predict_disease_endpoint(image: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
 
-@app.get("/models/info")
-async def get_model_info():
-    """
-     ML model information
-    """
-    return {
-        "models": [
-            {
-                "name": "Simple Crop Disease Classifier",
-                "version": "1.0.0",
-                "type": "Rule-Based Classification",
-                "status": "loaded",
-                "accuracy": "Demo Model - For Learning Purpose",
-                "supported_diseases": [
-                    "Healthy",
-                    "Leaf Spot Disease", 
-                    "Blight Disease",
-                    "Rust Disease",
-                    "Mosaic Virus"
-                ],
-                "features": [
-                    "Color analysis",
-                    "Basic image statistics", 
-                    "Rule-based decision making"
-                ]
-            }
-        ],
-        "total_models": 1,
-        "memory_usage": "Minimal"
-    }
-
-# # Server run
 if __name__ == "__main__":
-    print("🌾 Starting Simple ML Service for Beginners...")
-    print("📚 Perfect for learning ML integration!")
+    print("🌾 Starting Real ML Service with CNN...")
     print("🔗 Visit http://localhost:8000/docs for API documentation")
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
