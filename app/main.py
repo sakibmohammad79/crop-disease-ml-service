@@ -118,3 +118,7 @@ if __name__ == "__main__":
     print("🌾 Starting Real ML Service with CNN...")
     print("🔗 Visit http://localhost:8000/docs for API documentation")
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+
+
+    #source ./venv/Scripts/activate
+    #python -m uvicorn app.main:app --reload
