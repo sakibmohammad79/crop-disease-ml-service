@@ -1,8 +1,32 @@
-# Python
-venv/
+# Python cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
-# Node.js
-node_modules/
-.env
+# Virtual environment
+venv/
+.env/
+
+# Jupyter notebooks checkpoints (if you use notebooks)
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Models and large files
+models/*.h5
+models/*.hdf5
+models/*.pb
+models/*.tflite
+models/crop_disease_model.h5
+models/crop_disease_weights.h5
+
+# Training datasets (usually very large)
+data/
+datasets/
+
+# Logs
+*.log
+logs/
