@@ -1,6 +1,5 @@
 # ml-service/app/real_model.py
 # Real ML model using TensorFlow and pre-trained weights
-
 import tensorflow as tf
 import numpy as np
 from PIL import Image
@@ -14,7 +13,6 @@ class RealCropDiseaseClassifier:
         """Initialize real ML classifier"""
         self.model = None
         self.is_loaded = False
-        
         # Real disease classes based on PlantVillage dataset
         self.disease_classes = [
             'Apple___Apple_scab',

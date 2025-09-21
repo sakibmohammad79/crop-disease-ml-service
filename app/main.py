@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import time
@@ -6,7 +5,7 @@ from datetime import datetime
 import uvicorn
 
 # Import real model
-from app.simple_model import initialize_real_model, predict_with_real_model
+from app.real_model import initialize_real_model, predict_with_real_model
 
 app = FastAPI(
     title="Real Crop Disease Detection ML Service",
@@ -77,7 +76,6 @@ async def predict_disease_endpoint(image: UploadFile = File(...)):
                 status_code=400, 
                 detail=f"Invalid file type: {image.content_type}. Only image files allowed."
             )
-        
         # Read image
         contents = await image.read()
         if len(contents) > 10 * 1024 * 1024:  # 10MB
