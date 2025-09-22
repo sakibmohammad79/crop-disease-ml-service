@@ -1,6 +1,4 @@
-# ml-service/download_pretrained.py
 # Download a pre-trained plant disease model
-
 import requests
 import os
 from pathlib import Path

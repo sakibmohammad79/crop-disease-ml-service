@@ -1,4 +1,3 @@
-# ml-service/app/real_model.py
 # Real ML model using TensorFlow and pre-trained weights
 import tensorflow as tf
 import numpy as np
@@ -13,6 +12,7 @@ class RealCropDiseaseClassifier:
         """Initialize real ML classifier"""
         self.model = None
         self.is_loaded = False
+        
         # Real disease classes based on PlantVillage dataset
         self.disease_classes = [
             'Apple___Apple_scab',
@@ -160,34 +160,131 @@ class RealCropDiseaseClassifier:
         return model
     
     def load_model(self):
-        """Load the trained model"""
+        """Load the trained model with multiple fallback options"""
         try:
             print("Loading real CNN model...")
             
-            # Create model architecture
-            self.model = self.create_cnn_model()
+            # Option 1: Try to load complete model first
+            complete_model_path = "models/crop_disease_model.h5"
+            if os.path.exists(complete_model_path):
+                try:
+                    self.model = tf.keras.models.load_model(complete_model_path)
+                    print("Complete pre-trained model loaded successfully!")
+                    self.is_loaded = True
+                    return True
+                except Exception as e:
+                    print(f"Complete model loading failed: {e}")
             
-            # Compile the model
+            # Option 2: Try transfer learning architecture with weights
+            weights_path = "models/crop_disease_weights.weights.h5"
+            if os.path.exists(weights_path):
+                try:
+                    print("Creating transfer learning architecture...")
+                    
+                    # Use ResNet50 base (compatible with downloaded weights)
+                    base_model = tf.keras.applications.ResNet50(
+                        weights='imagenet',
+                        include_top=False,
+                        input_shape=(224, 224, 3)
+                    )
+                    
+                    # Create model matching the downloaded architecture
+                    self.model = tf.keras.Sequential([
+                        base_model,
+                        tf.keras.layers.GlobalAveragePooling2D(),
+                        tf.keras.layers.Dense(128, activation='relu'),
+                        tf.keras.layers.Dropout(0.5),
+                        tf.keras.layers.Dense(6, activation='softmax')
+                    ])
+                    
+                    # Compile first
+                    self.model.compile(
+                        optimizer='adam',
+                        loss='sparse_categorical_crossentropy',
+                        metrics=['accuracy']
+                    )
+                    
+                    # Load weights
+                    self.model.load_weights(weights_path)
+                    print("Transfer learning weights loaded successfully!")
+                    self.is_loaded = True
+                    return True
+                    
+                except Exception as e:
+                    print(f"Transfer learning weights loading failed: {e}")
+            
+            # Option 3: Try old format weights
+            old_weights_path = "models/crop_disease_weights.h5"
+            if os.path.exists(old_weights_path):
+                try:
+                    print("Trying to load with custom CNN architecture...")
+                    
+                    # Create original CNN architecture
+                    self.model = self.create_cnn_model()
+                    self.model.compile(
+                        optimizer='adam',
+                        loss='sparse_categorical_crossentropy',
+                        metrics=['accuracy']
+                    )
+                    
+                    # Try to load weights
+                    self.model.load_weights(old_weights_path)
+                    print("Custom CNN weights loaded successfully!")
+                    self.is_loaded = True
+                    return True
+                    
+                except Exception as e:
+                    print(f"Custom CNN weights loading failed: {e}")
+            
+            # Option 4: Create fresh transfer learning model (no training)
+            print("Creating fresh transfer learning model...")
+            try:
+                base_model = tf.keras.applications.MobileNetV2(
+                    weights='imagenet',
+                    include_top=False,
+                    input_shape=(224, 224, 3)
+                )
+                
+                # Freeze base model
+                base_model.trainable = False
+                
+                self.model = tf.keras.Sequential([
+                    base_model,
+                    tf.keras.layers.GlobalAveragePooling2D(),
+                    tf.keras.layers.Dense(128, activation='relu'),
+                    tf.keras.layers.Dropout(0.3),
+                    tf.keras.layers.Dense(6, activation='softmax')
+                ])
+                
+                self.model.compile(
+                    optimizer='adam',
+                    loss='sparse_categorical_crossentropy',
+                    metrics=['accuracy']
+                )
+                
+                print("Fresh MobileNetV2 transfer learning model created!")
+                print("Note: This model has ImageNet features but needs crop disease training for accuracy.")
+                self.is_loaded = True
+                return True
+                
+            except Exception as e:
+                print(f"Fresh model creation failed: {e}")
+            
+            # Option 5: Last resort - custom CNN without weights
+            print("Creating basic CNN model (no pre-trained weights)...")
+            self.model = self.create_cnn_model()
             self.model.compile(
                 optimizer='adam',
                 loss='sparse_categorical_crossentropy',
                 metrics=['accuracy']
             )
-            
-            # Try to load pre-trained weights if available
-            weights_path = 'models/crop_disease_weights.h5'
-            if os.path.exists(weights_path):
-                self.model.load_weights(weights_path)
-                print("Pre-trained weights loaded successfully!")
-            else:
-                print("No pre-trained weights found. Using randomly initialized model.")
-                print("Note: This model needs training on real data for accurate predictions.")
-            
+            print("Basic CNN model created (randomly initialized)")
+            print("Note: This model needs training on real data for accurate predictions.")
             self.is_loaded = True
             return True
             
         except Exception as e:
-            print(f"Failed to load model: {e}")
+            print(f"All model loading attempts failed: {e}")
             self.is_loaded = False
             return False
     
