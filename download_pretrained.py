@@ -6,7 +6,6 @@ import gdown
 
 def download_pretrained_model():
     """Download pre-trained model from various sources"""
-    
     # Create models directory
     models_dir = Path('models')
     models_dir.mkdir(exist_ok=True)

@@ -356,6 +356,7 @@ class RealCropDiseaseClassifier:
                 affected_area = round(max(5, min(45, base_area)), 1)
             
             return {
+                
                 'success': True,
                 'prediction': {
                     'disease': disease_key,
