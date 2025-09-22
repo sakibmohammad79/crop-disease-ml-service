@@ -4,7 +4,8 @@ import time
 from datetime import datetime
 import uvicorn
 from contextlib import asynccontextmanager
-
+import asyncio
+from fastapi import UploadFile, HTTPException
 # Import real model
 from app.real_model import initialize_real_model, predict_with_real_model
 
@@ -72,52 +73,79 @@ async def health_check():
         "memory_usage": "moderate"
     }
 
+# @app.post("/predict")
+# async def predict_disease_endpoint(image: UploadFile = File(...)):
+#     start_time = time.time()
+    
+#     try:
+#         # File validation
+#         if not image.content_type or not image.content_type.startswith('image/'):
+#             raise HTTPException(
+#                 status_code=400, 
+#                 detail=f"Invalid file type: {image.content_type}. Only image files allowed."
+#             )
+#         # Read image
+#         contents = await image.read()
+#         if len(contents) > 10 * 1024 * 1024:  # 10MB
+#             raise HTTPException(status_code=400, detail="File too large")
+        
+#         print(f"🔍 Processing image: {image.filename} ({len(contents)} bytes)")
+        
+#         # Get prediction using real CNN model
+#         result = predict_with_real_model(contents)
+        
+#         # Calculate processing time
+#         processing_time = round(time.time() - start_time, 2)
+        
+#         return {
+#             "success": True,
+#             "message": "Image analyzed with CNN model",
+#             "image_info": {
+#                 "filename": image.filename,
+#                 "size_bytes": len(contents)
+#             },
+#             "prediction": result['prediction'],
+#             "treatment": result['treatment'],
+#             "processing_time_seconds": processing_time,
+#             "model_info": {
+#                 "type": result.get('model_type', 'CNN'),
+#                 "version": result['prediction']['model_version'],
+#                 "details": result.get('model_info', {})
+#             },
+#             "timestamp": datetime.now().isoformat()
+#         }
+        
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
+
+
+
 @app.post("/predict")
 async def predict_disease_endpoint(image: UploadFile = File(...)):
-    start_time = time.time()
-    
+    if not image.content_type or not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image files allowed")
+
+    contents = await image.read()
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large")
+
+    loop = asyncio.get_running_loop()
     try:
-        # File validation
-        if not image.content_type or not image.content_type.startswith('image/'):
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Invalid file type: {image.content_type}. Only image files allowed."
-            )
-        # Read image
-        contents = await image.read()
-        if len(contents) > 10 * 1024 * 1024:  # 10MB
-            raise HTTPException(status_code=400, detail="File too large")
-        
-        print(f"🔍 Processing image: {image.filename} ({len(contents)} bytes)")
-        
-        # Get prediction using real CNN model
-        result = predict_with_real_model(contents)
-        
-        # Calculate processing time
-        processing_time = round(time.time() - start_time, 2)
-        
-        return {
-            "success": True,
-            "message": "Image analyzed with CNN model",
-            "image_info": {
-                "filename": image.filename,
-                "size_bytes": len(contents)
-            },
-            "prediction": result['prediction'],
-            "treatment": result['treatment'],
-            "processing_time_seconds": processing_time,
-            "model_info": {
-                "type": result.get('model_type', 'CNN'),
-                "version": result['prediction']['model_version'],
-                "details": result.get('model_info', {})
-            },
-            "timestamp": datetime.now().isoformat()
-        }
-        
-    except HTTPException:
-        raise
+        # run predict in threadpool to avoid blocking the event loop
+        result = await loop.run_in_executor(None, predict_with_real_model, contents)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
+
+    return {
+        "success": True,
+        "message": "Image analyzed",
+        "prediction": result['prediction'],
+        "treatment": result['treatment'],
+        "model_info": result.get('model_info', {})
+    }
+
 
 if __name__ == "__main__":
     print("🌾 Starting Real ML Service with CNN...")
