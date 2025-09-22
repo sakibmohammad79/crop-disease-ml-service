@@ -1,18 +1,41 @@
+
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import time
 from datetime import datetime
 import uvicorn
+from contextlib import asynccontextmanager
 
 # Import real model
 from app.real_model import initialize_real_model, predict_with_real_model
+
+# Global variable to track model status
+model_loaded = False
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global model_loaded
+    # Startup
+    print("🧠 Initializing Real CNN Model...")
+    model_loaded = initialize_real_model()
+    if model_loaded:
+        print("✅ Real CNN model loaded successfully!")
+    else:
+        print("⚠️  Model loading failed, using fallback predictions")
+
+    yield  # Application is running
+
+    # Shutdown (if you need cleanup)
+    print("👋 Shutting down service...")
 
 app = FastAPI(
     title="Real Crop Disease Detection ML Service",
     description="CNN-based AI service for crop disease detection",
     version="2.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # CORS middleware
@@ -23,20 +46,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE", "PUT", "PATCH"],
     allow_headers=["*"],
 )
-
-# Global variable to track model status
-model_loaded = False
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize real ML model on startup"""
-    global model_loaded
-    print("🧠 Initializing Real CNN Model...")
-    model_loaded = initialize_real_model()
-    if model_loaded:
-        print("✅ Real CNN model loaded successfully!")
-    else:
-        print("⚠️  Model loading failed, using fallback predictions")
 
 @app.get("/")
 async def root():
@@ -117,6 +126,5 @@ if __name__ == "__main__":
     print("🔗 Visit http://localhost:8000/docs for API documentation")
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
 
-
-    #source ./venv/Scripts/activate
-    #python -m uvicorn app.main:app --reload
+    # source ./venv/Scripts/activate
+    # python -m uvicorn app.main:app --reload
