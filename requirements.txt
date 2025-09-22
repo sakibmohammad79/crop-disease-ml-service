@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+tensorflow           # TF 2.x (যদি GPU চান তাহলে tensorflow-gpu বা সঠিক TF+CUDA)
+pillow
+numpy
+python-multipart     # file upload support
+tensorflow-hub       # optional
+gdown                # optional
